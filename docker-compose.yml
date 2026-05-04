@@ -1,0 +1,33 @@
+services:
+  # OWASP Juice Shop: La aplicación vulnerable que servirá como objetivo de pruebas.
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    # Política de reinicio: se reinicia automáticamente a menos que se detenga manualmente.
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    networks:
+      - zap-net
+
+  # OWASP ZAP (Zed Attack Proxy): Herramienta para encontrar vulnerabilidades.
+  zap:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    # Política de reinicio: asegura disponibilidad a menos que se detenga manualmente.
+    restart: unless-stopped
+    # El comando zap-webswing.sh permite acceder a la interfaz de ZAP a través del navegador.
+    command: zap-webswing.sh
+    ports:
+      - "8080:8080" # Interfaz Web (Webswing)
+      - "8090:8090" # Puerto del Proxy API
+    volumes:
+      - ./zap/reports:/zap/reports:rw # Volumen persistente para los reportes generados
+    networks:
+      - zap-net
+    # Asegura que Juice Shop esté levantado antes de iniciar ZAP (aunque ZAP no dependa estrictamente de él para arrancar).
+    depends_on:
+      - juice-shop
+
+# Red compartida para que ZAP pueda comunicarse con Juice Shop usando el nombre del servicio.
+networks:
+  zap-net:
+    driver: bridge
